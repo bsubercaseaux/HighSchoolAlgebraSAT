@@ -3,6 +3,10 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# Lean verification build output and generated formulas
+LeanVerification/.lake/
+lean_encoding_*.cnf
+
 # C extensions
 *.so
 
