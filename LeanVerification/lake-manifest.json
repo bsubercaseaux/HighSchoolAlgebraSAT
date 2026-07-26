@@ -1,5 +1,16 @@
-{"version": "1.1.0",
+{"version": "1.2.0",
  "packagesDir": ".lake/packages",
- "packages": [],
+ "packages":
+ [{"url": "https://github.com/leansolving/lrat-catcher",
+   "type": "git",
+   "subDir": null,
+   "scope": "",
+   "rev": "4ec2168b810636e789da3349ab3e670af338187c",
+   "name": "LRATCatcher",
+   "manifestFile": "lake-manifest.json",
+   "inputRev": "4ec2168b810636e789da3349ab3e670af338187c",
+   "inherited": false,
+   "configFile": "lakefile.toml"}],
  "name": "wilkies",
- "lakeDir": ".lake"}
+ "lakeDir": ".lake",
+ "fixedToolchain": false}

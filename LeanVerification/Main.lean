@@ -1,4 +1,4 @@
-import Wilkies
+import Wilkies.EncoderSimplified
 
 open Wilkies
 

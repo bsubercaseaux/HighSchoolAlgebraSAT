@@ -346,33 +346,6 @@ integers to 1,2,3 and the failing pair to a=4, b=5.  These include the used
 Burris-Lee M exclusions, the Jackson linear-core fragment, and Lee L2-L5 for
 P,Q,R,S.  See `ZhangPaperConsequences` and `ZHANG_EXTRAS.md`.
 -/
-def extraClauses (n : Nat) : CNF :=
-  let vals := values n
-  let x := 4
-  let y := 5
-  [
-    [pos (addVar n 1 1 2)],
-    [pos (addVar n 2 1 3)],
-    [neg (addVar n 1 x 1)],
-    [neg (addVar n 2 x 1)],
-    [neg (addVar n x x 1)],
-    [neg (mulVar n x x 1)],
-    [neg (addVar n x x x)],
-    [neg (mulVar n x x x)],
-    [neg (addVar n 1 x x)],
-    [neg (addVar n 2 x x)]
-  ] ++
-  flatMap [1, 2, 3] (fun j =>
-    flatMap vals (fun z =>
-      [1, 2, 3].map (fun i => [neg (addVar n i z y), neg (mulVar n j x z)]))) ++
-  flatMap vals (fun v =>
-    flatMap (product2 vals vals) (fun (i, l) => [
-      [neg (termVar n 0 i), neg (termVar n 4 l), neg (mulVar n i v l)],
-      [neg (termVar n 4 i), neg (termVar n 0 l), neg (mulVar n i v l)],
-      [neg (termVar n 8 i), neg (termVar n 13 l), neg (mulVar n i v l)],
-      [neg (termVar n 13 i), neg (termVar n 8 l), neg (mulVar n i v l)]
-    ]))
-
 def simpEncExtraClauses (n : Nat) : CNF :=
   let vals := values n
   let x := 4
@@ -434,9 +407,6 @@ def hsiClauses (n : Nat) : CNF :=
 
 def coreClauses (n : Nat) : CNF :=
   hsiClauses n ++ wilkieClauses n
-
-def legacyEncode (n : Nat) : CNF :=
-  coreClauses n ++ extraClauses n
 
 def encode (n : Nat) : CNF :=
   coreClauses n ++ simpEncLexClauses n (simpEncLexAuxStart n) ++ simpEncExtraClauses n

@@ -577,11 +577,6 @@ theorem linearIndex0_lt_mul
   have h := linearIndex_lt_mul (n := base) ha (succ_mem_values_of_lt hd)
   simpa using h
 
-theorem linearIndex0_succ_le_mul
-    {a A base d : Nat} (ha : a < A) (hd : d < base) :
-    a * base + d + 1 ≤ A * base := by
-  exact Nat.succ_le_of_lt (linearIndex0_lt_mul ha hd)
-
 theorem linearIndex0_inj
     {a b base d e : Nat} (hd : d < base) (he : e < base)
     (h : a * base + d = b * base + e) :
@@ -1485,23 +1480,6 @@ theorem evalClause_three_neg_iff
         exact hτb
     · left
       exact hτa
-
-theorem evalCNF_threeNegClauses_iff
-    {α : Type} (τ : Assignment) (xs : List α)
-    (a b c : α → Nat)
-    (hpos : ∀ x, x ∈ xs → 0 < a x ∧ 0 < b x ∧ 0 < c x) :
-    evalCNF τ (xs.map (fun x => [neg (a x), neg (b x), neg (c x)])) ↔
-      ∀ x, x ∈ xs → ¬(τ (a x) ∧ τ (b x) ∧ τ (c x)) := by
-  induction xs with
-  | nil =>
-      simp [evalCNF]
-  | cons x xs ih =>
-      have hxpos := hpos x (by simp)
-      have hxspos : ∀ y, y ∈ xs → 0 < a y ∧ 0 < b y ∧ 0 < c y := by
-        intro y hy
-        exact hpos y (by simp [hy])
-      simp [evalCNF, evalClause_three_neg_iff τ hxpos.1 hxpos.2.1 hxpos.2.2,
-        ih hxspos]
 
 theorem evalClause_five_neg_iff
     (τ : Assignment) {a b c d e : Nat}
@@ -3714,29 +3692,6 @@ theorem DecodedBy.hsi
   exp_add hi hj hk := D.exp_add C EAS hi hj hk
   exp_mul hi hj hk := D.exp_mul C EMS hi hj hk
   exp_assoc hi hj hk := D.exp_assoc C ES hi hj hk
-
-theorem hsiSemantics_yields_hsi
-    {n : Nat} {τ : Assignment} (S : HSISemantics n τ) :
-    Closed n (decodedAlgebra n τ) ∧ HSI n (decodedAlgebra n τ) := by
-  rcases S with ⟨T, U, AS, MS, DS, EAS, EMS, ES⟩
-  have CD := decodedAlgebra_closed_decoded T
-  exact ⟨CD.1, CD.2.hsi CD.1 U AS MS DS EAS EMS ES⟩
-
-theorem hsiClauses_satisfying_yields_hsi
-    {n : Nat} {τ : Assignment} (h : evalCNF τ (hsiClauses n)) :
-    Closed n (decodedAlgebra n τ) ∧ HSI n (decodedAlgebra n τ) :=
-  hsiSemantics_yields_hsi ((hsiClauses_correct n τ).1 h)
-
-theorem encode_satisfying_yields_hsi
-    {n : Nat} {τ : Assignment} (h : evalCNF τ (legacyEncode n)) :
-    ∃ A, Closed n A ∧ HSI n A := by
-  have hPrefix : evalCNF τ (hsiClauses n) := by
-    unfold legacyEncode at h
-    rw [evalCNF_append] at h
-    unfold coreClauses at h
-    rw [evalCNF_append] at h
-    exact h.1.1
-  exact ⟨decodedAlgebra n τ, hsiClauses_satisfying_yields_hsi hPrefix⟩
 
 def x2 (A : Algebra) (z : Nat) : Nat :=
   A.mul z z
@@ -6479,19 +6434,6 @@ theorem m10_x_mul_x_eq_x_yields_wilkie
     exact H.mul_comm hxLeft hxRight
   simpa [wilkieCore, wilkieP, Pterm, Qterm, Rterm, Sterm, x2, x3, x4] using hcore
 
-theorem fixedM01M07M10Consequences_of_wilkieFails
-    {n : Nat} {A : Algebra} (C : Closed n A) (H : HSI n A)
-    (h5 : InDomain n 5) (hFail : WilkieFailsAt A 4 5 4) :
-    A.add 1 4 ≠ 1 ∧ A.add 1 4 ≠ 4 ∧ A.mul 4 4 ≠ 4 := by
-  constructor
-  · intro h
-    exact hFail (m01_one_add_x_eq_one_yields_wilkie C H h5 h)
-  · constructor
-    · intro h
-      exact hFail (m07_one_add_x_eq_x_yields_wilkie C H h5 h)
-    · intro h
-      exact hFail (m10_x_mul_x_eq_x_yields_wilkie C H h5 h)
-
 theorem fixedBurrisLeeConsequences_of_wilkieFails
     {n : Nat} {A : Algebra} (C : Closed n A) (H : HSI n A)
     (h5 : InDomain n 5) (hFail : WilkieFailsAt A 4 5 4)
@@ -6649,57 +6591,57 @@ theorem wilkieTermSpecArgsInDomain_of_terms
   have h1 : InDomain n 1 := InDomain.of_le h5 (by omega) (by omega)
   have h4 : InDomain n 4 := InDomain.of_le h5 (by omega) (by omega)
   have m0 : InDomain n (wilkieTermExpr A 0) :=
-    M (0, ⟨.add, .const 1, .const 4⟩) (by native_decide)
+    M (0, ⟨.add, .const 1, .const 4⟩) (by decide)
   have m1 : InDomain n (wilkieTermExpr A 1) :=
-    M (1, ⟨.exp, .term 0, .const 5⟩) (by native_decide)
+    M (1, ⟨.exp, .term 0, .const 5⟩) (by decide)
   have m2 : InDomain n (wilkieTermExpr A 2) :=
-    M (2, ⟨.exp, .term 0, .const 4⟩) (by native_decide)
+    M (2, ⟨.exp, .term 0, .const 4⟩) (by decide)
   have m3 : InDomain n (wilkieTermExpr A 3) :=
-    M (3, ⟨.mul, .const 4, .const 4⟩) (by native_decide)
+    M (3, ⟨.mul, .const 4, .const 4⟩) (by decide)
   have m4 : InDomain n (wilkieTermExpr A 4) :=
-    M (4, ⟨.add, .term 0, .term 3⟩) (by native_decide)
+    M (4, ⟨.add, .term 0, .term 3⟩) (by decide)
   have m5 : InDomain n (wilkieTermExpr A 5) :=
-    M (5, ⟨.exp, .term 4, .const 4⟩) (by native_decide)
+    M (5, ⟨.exp, .term 4, .const 4⟩) (by decide)
   have m6 : InDomain n (wilkieTermExpr A 6) :=
-    M (6, ⟨.exp, .term 4, .const 5⟩) (by native_decide)
+    M (6, ⟨.exp, .term 4, .const 5⟩) (by decide)
   have m7 : InDomain n (wilkieTermExpr A 7) :=
-    M (7, ⟨.mul, .term 3, .const 4⟩) (by native_decide)
+    M (7, ⟨.mul, .term 3, .const 4⟩) (by decide)
   have m8 : InDomain n (wilkieTermExpr A 8) :=
-    M (8, ⟨.add, .const 1, .term 7⟩) (by native_decide)
+    M (8, ⟨.add, .const 1, .term 7⟩) (by decide)
   have m9 : InDomain n (wilkieTermExpr A 9) :=
-    M (9, ⟨.exp, .term 8, .const 4⟩) (by native_decide)
+    M (9, ⟨.exp, .term 8, .const 4⟩) (by decide)
   have m10 : InDomain n (wilkieTermExpr A 10) :=
-    M (10, ⟨.exp, .term 8, .const 5⟩) (by native_decide)
+    M (10, ⟨.exp, .term 8, .const 5⟩) (by decide)
   have m11 : InDomain n (wilkieTermExpr A 11) :=
-    M (11, ⟨.mul, .term 7, .const 4⟩) (by native_decide)
+    M (11, ⟨.mul, .term 7, .const 4⟩) (by decide)
   have m12 : InDomain n (wilkieTermExpr A 12) :=
-    M (12, ⟨.add, .const 1, .term 3⟩) (by native_decide)
+    M (12, ⟨.add, .const 1, .term 3⟩) (by decide)
   have m13 : InDomain n (wilkieTermExpr A 13) :=
-    M (13, ⟨.add, .term 12, .term 11⟩) (by native_decide)
+    M (13, ⟨.add, .term 12, .term 11⟩) (by decide)
   have m14 : InDomain n (wilkieTermExpr A 14) :=
-    M (14, ⟨.exp, .term 13, .const 4⟩) (by native_decide)
+    M (14, ⟨.exp, .term 13, .const 4⟩) (by decide)
   have m15 : InDomain n (wilkieTermExpr A 15) :=
-    M (15, ⟨.exp, .term 13, .const 5⟩) (by native_decide)
+    M (15, ⟨.exp, .term 13, .const 5⟩) (by decide)
   have m16 : InDomain n (wilkieTermExpr A 16) :=
-    M (16, ⟨.add, .term 1, .term 6⟩) (by native_decide)
+    M (16, ⟨.add, .term 1, .term 6⟩) (by decide)
   have m17 : InDomain n (wilkieTermExpr A 17) :=
-    M (17, ⟨.add, .term 2, .term 5⟩) (by native_decide)
+    M (17, ⟨.add, .term 2, .term 5⟩) (by decide)
   have m18 : InDomain n (wilkieTermExpr A 18) :=
-    M (18, ⟨.exp, .term 17, .const 5⟩) (by native_decide)
+    M (18, ⟨.exp, .term 17, .const 5⟩) (by decide)
   have m19 : InDomain n (wilkieTermExpr A 19) :=
-    M (19, ⟨.exp, .term 16, .const 4⟩) (by native_decide)
+    M (19, ⟨.exp, .term 16, .const 4⟩) (by decide)
   have m20 : InDomain n (wilkieTermExpr A 20) :=
-    M (20, ⟨.add, .term 9, .term 14⟩) (by native_decide)
+    M (20, ⟨.add, .term 9, .term 14⟩) (by decide)
   have m21 : InDomain n (wilkieTermExpr A 21) :=
-    M (21, ⟨.add, .term 10, .term 15⟩) (by native_decide)
+    M (21, ⟨.add, .term 10, .term 15⟩) (by decide)
   have m22 : InDomain n (wilkieTermExpr A 22) :=
-    M (22, ⟨.exp, .term 20, .const 5⟩) (by native_decide)
+    M (22, ⟨.exp, .term 20, .const 5⟩) (by decide)
   have m23 : InDomain n (wilkieTermExpr A 23) :=
-    M (23, ⟨.exp, .term 21, .const 4⟩) (by native_decide)
+    M (23, ⟨.exp, .term 21, .const 4⟩) (by decide)
   have m24 : InDomain n (wilkieTermExpr A 24) :=
-    M (24, ⟨.mul, .term 19, .term 22⟩) (by native_decide)
+    M (24, ⟨.mul, .term 19, .term 22⟩) (by decide)
   have m25 : InDomain n (wilkieTermExpr A 25) :=
-    M (25, ⟨.mul, .term 18, .term 23⟩) (by native_decide)
+    M (25, ⟨.mul, .term 18, .term 23⟩) (by decide)
   intro p hp
   simp [enumerate, enumerateFrom, termSpecs] at hp
   rcases hp with h | h | h | h | h | h | h | h | h | h | h | h | h |
@@ -7368,37 +7310,6 @@ theorem simpEncLeeDivClauses_modelAssignment
   · intro v _hv
     exact mulVar_pos n 4 v 5
 
-theorem simpEncM05M06UnitClauses_modelAssignment
-    {n : Nat} {A : Algebra} (C : Closed n A) (H : HSI n A)
-    (h5 : InDomain n 5) (hFail : WilkieFailsAt A 4 5 4) :
-    evalCNF (modelAssignment n A)
-      [[neg (termVar n 12 1)], [neg (termVar n 7 1)]] := by
-  have h1 : InDomain n 1 := InDomain.of_le h5 (by omega) (by omega)
-  simp [evalCNF, evalClause,
-    evalLit_neg_of_pos (modelAssignment n A) (termVar_pos n 12 1),
-    evalLit_neg_of_pos (modelAssignment n A) (termVar_pos n 7 1)]
-  constructor
-  · intro hτ
-    have hterm : A.add 1 (x2 A 4) = 1 := by
-      simpa [wilkieTermExpr] using (modelAssignment_termVar_iff h1).1 hτ
-    exact hFail (m05_one_add_x2_eq_one_yields_wilkie C H h5 hterm)
-  · intro hτ
-    have hterm : x3 A 4 = 1 := by
-      simpa [wilkieTermExpr] using (modelAssignment_termVar_iff h1).1 hτ
-    exact hFail (m06_x3_eq_one_yields_wilkie C H h5 hterm)
-
-theorem simpEncM11UnitClause_modelAssignment
-    {n : Nat} {A : Algebra} (C : Closed n A) (H : HSI n A)
-    (h5 : InDomain n 5) (hFail : WilkieFailsAt A 4 5 4) :
-    evalCNF (modelAssignment n A) [[neg (termVar n 12 4)]] := by
-  have h4 : InDomain n 4 := InDomain.of_le h5 (by omega) (by omega)
-  simp [evalCNF, evalClause,
-    evalLit_neg_of_pos (modelAssignment n A) (termVar_pos n 12 4)]
-  intro hτ
-  have hterm : A.add 1 (x2 A 4) = 4 := by
-    simpa [wilkieTermExpr] using (modelAssignment_termVar_iff h4).1 hτ
-  exact hFail (m11_one_add_x2_eq_x_yields_wilkie C H h5 hterm)
-
 theorem simpEncFixedUnitClauses_modelAssignment
     {n : Nat} {A : Algebra} (C : Closed n A) (H : HSI n A)
     (h5 : InDomain n 5)
@@ -7863,132 +7774,132 @@ theorem wilkieTermClauses_decode_key_terms
   have h1 : InDomain n 1 := InDomain.of_le h5 (by omega) (by omega)
   have h4 : InDomain n 4 := InDomain.of_le h5 (by omega) (by omega)
   have s0 : TermClausesSemantics n τ 0 ⟨.add, .const 1, .const 4⟩ :=
-    W (0, ⟨.add, .const 1, .const 4⟩) (by native_decide)
+    W (0, ⟨.add, .const 1, .const 4⟩) (by decide)
   have m0 : InDomain n (wilkieTermExpr A 0) := C.add_mem h1 h4
   have t0 : TermDecodedAt n τ A 0 :=
     termDecodedAt_of_clause_semantics D C s0 h1 h4 trivial trivial rfl
   have s1 : TermClausesSemantics n τ 1 ⟨.exp, .term 0, .const 5⟩ :=
-    W (1, ⟨.exp, .term 0, .const 5⟩) (by native_decide)
+    W (1, ⟨.exp, .term 0, .const 5⟩) (by decide)
   have m1 : InDomain n (wilkieTermExpr A 1) := C.exp_mem m0 h5
   have t1 : TermDecodedAt n τ A 1 :=
     termDecodedAt_of_clause_semantics D C s1 m0 h5 t0 trivial rfl
   have s2 : TermClausesSemantics n τ 2 ⟨.exp, .term 0, .const 4⟩ :=
-    W (2, ⟨.exp, .term 0, .const 4⟩) (by native_decide)
+    W (2, ⟨.exp, .term 0, .const 4⟩) (by decide)
   have m2 : InDomain n (wilkieTermExpr A 2) := C.exp_mem m0 h4
   have t2 : TermDecodedAt n τ A 2 :=
     termDecodedAt_of_clause_semantics D C s2 m0 h4 t0 trivial rfl
   have s3 : TermClausesSemantics n τ 3 ⟨.mul, .const 4, .const 4⟩ :=
-    W (3, ⟨.mul, .const 4, .const 4⟩) (by native_decide)
+    W (3, ⟨.mul, .const 4, .const 4⟩) (by decide)
   have m3 : InDomain n (wilkieTermExpr A 3) := C.mul_mem h4 h4
   have t3 : TermDecodedAt n τ A 3 :=
     termDecodedAt_of_clause_semantics D C s3 h4 h4 trivial trivial rfl
   have s4 : TermClausesSemantics n τ 4 ⟨.add, .term 0, .term 3⟩ :=
-    W (4, ⟨.add, .term 0, .term 3⟩) (by native_decide)
+    W (4, ⟨.add, .term 0, .term 3⟩) (by decide)
   have m4 : InDomain n (wilkieTermExpr A 4) := C.add_mem m0 m3
   have t4 : TermDecodedAt n τ A 4 :=
     termDecodedAt_of_clause_semantics D C s4 m0 m3 t0 t3 rfl
   have s5 : TermClausesSemantics n τ 5 ⟨.exp, .term 4, .const 4⟩ :=
-    W (5, ⟨.exp, .term 4, .const 4⟩) (by native_decide)
+    W (5, ⟨.exp, .term 4, .const 4⟩) (by decide)
   have m5 : InDomain n (wilkieTermExpr A 5) := C.exp_mem m4 h4
   have t5 : TermDecodedAt n τ A 5 :=
     termDecodedAt_of_clause_semantics D C s5 m4 h4 t4 trivial rfl
   have s6 : TermClausesSemantics n τ 6 ⟨.exp, .term 4, .const 5⟩ :=
-    W (6, ⟨.exp, .term 4, .const 5⟩) (by native_decide)
+    W (6, ⟨.exp, .term 4, .const 5⟩) (by decide)
   have m6 : InDomain n (wilkieTermExpr A 6) := C.exp_mem m4 h5
   have t6 : TermDecodedAt n τ A 6 :=
     termDecodedAt_of_clause_semantics D C s6 m4 h5 t4 trivial rfl
   have s7 : TermClausesSemantics n τ 7 ⟨.mul, .term 3, .const 4⟩ :=
-    W (7, ⟨.mul, .term 3, .const 4⟩) (by native_decide)
+    W (7, ⟨.mul, .term 3, .const 4⟩) (by decide)
   have m7 : InDomain n (wilkieTermExpr A 7) := C.mul_mem m3 h4
   have t7 : TermDecodedAt n τ A 7 :=
     termDecodedAt_of_clause_semantics D C s7 m3 h4 t3 trivial rfl
   have s8 : TermClausesSemantics n τ 8 ⟨.add, .const 1, .term 7⟩ :=
-    W (8, ⟨.add, .const 1, .term 7⟩) (by native_decide)
+    W (8, ⟨.add, .const 1, .term 7⟩) (by decide)
   have m8 : InDomain n (wilkieTermExpr A 8) := C.add_mem h1 m7
   have t8 : TermDecodedAt n τ A 8 :=
     termDecodedAt_of_clause_semantics D C s8 h1 m7 trivial t7 rfl
   have s9 : TermClausesSemantics n τ 9 ⟨.exp, .term 8, .const 4⟩ :=
-    W (9, ⟨.exp, .term 8, .const 4⟩) (by native_decide)
+    W (9, ⟨.exp, .term 8, .const 4⟩) (by decide)
   have m9 : InDomain n (wilkieTermExpr A 9) := C.exp_mem m8 h4
   have t9 : TermDecodedAt n τ A 9 :=
     termDecodedAt_of_clause_semantics D C s9 m8 h4 t8 trivial rfl
   have s10 : TermClausesSemantics n τ 10 ⟨.exp, .term 8, .const 5⟩ :=
-    W (10, ⟨.exp, .term 8, .const 5⟩) (by native_decide)
+    W (10, ⟨.exp, .term 8, .const 5⟩) (by decide)
   have m10 : InDomain n (wilkieTermExpr A 10) := C.exp_mem m8 h5
   have t10 : TermDecodedAt n τ A 10 :=
     termDecodedAt_of_clause_semantics D C s10 m8 h5 t8 trivial rfl
   have s11 : TermClausesSemantics n τ 11 ⟨.mul, .term 7, .const 4⟩ :=
-    W (11, ⟨.mul, .term 7, .const 4⟩) (by native_decide)
+    W (11, ⟨.mul, .term 7, .const 4⟩) (by decide)
   have m11 : InDomain n (wilkieTermExpr A 11) := C.mul_mem m7 h4
   have t11 : TermDecodedAt n τ A 11 :=
     termDecodedAt_of_clause_semantics D C s11 m7 h4 t7 trivial rfl
   have s12 : TermClausesSemantics n τ 12 ⟨.add, .const 1, .term 3⟩ :=
-    W (12, ⟨.add, .const 1, .term 3⟩) (by native_decide)
+    W (12, ⟨.add, .const 1, .term 3⟩) (by decide)
   have m12 : InDomain n (wilkieTermExpr A 12) := C.add_mem h1 m3
   have t12 : TermDecodedAt n τ A 12 :=
     termDecodedAt_of_clause_semantics D C s12 h1 m3 trivial t3 rfl
   have s13 : TermClausesSemantics n τ 13 ⟨.add, .term 12, .term 11⟩ :=
-    W (13, ⟨.add, .term 12, .term 11⟩) (by native_decide)
+    W (13, ⟨.add, .term 12, .term 11⟩) (by decide)
   have m13 : InDomain n (wilkieTermExpr A 13) := C.add_mem m12 m11
   have t13 : TermDecodedAt n τ A 13 :=
     termDecodedAt_of_clause_semantics D C s13 m12 m11 t12 t11 rfl
   have s14 : TermClausesSemantics n τ 14 ⟨.exp, .term 13, .const 4⟩ :=
-    W (14, ⟨.exp, .term 13, .const 4⟩) (by native_decide)
+    W (14, ⟨.exp, .term 13, .const 4⟩) (by decide)
   have m14 : InDomain n (wilkieTermExpr A 14) := C.exp_mem m13 h4
   have t14 : TermDecodedAt n τ A 14 :=
     termDecodedAt_of_clause_semantics D C s14 m13 h4 t13 trivial rfl
   have s15 : TermClausesSemantics n τ 15 ⟨.exp, .term 13, .const 5⟩ :=
-    W (15, ⟨.exp, .term 13, .const 5⟩) (by native_decide)
+    W (15, ⟨.exp, .term 13, .const 5⟩) (by decide)
   have m15 : InDomain n (wilkieTermExpr A 15) := C.exp_mem m13 h5
   have t15 : TermDecodedAt n τ A 15 :=
     termDecodedAt_of_clause_semantics D C s15 m13 h5 t13 trivial rfl
   have s16 : TermClausesSemantics n τ 16 ⟨.add, .term 1, .term 6⟩ :=
-    W (16, ⟨.add, .term 1, .term 6⟩) (by native_decide)
+    W (16, ⟨.add, .term 1, .term 6⟩) (by decide)
   have m16 : InDomain n (wilkieTermExpr A 16) := C.add_mem m1 m6
   have t16 : TermDecodedAt n τ A 16 :=
     termDecodedAt_of_clause_semantics D C s16 m1 m6 t1 t6 rfl
   have s17 : TermClausesSemantics n τ 17 ⟨.add, .term 2, .term 5⟩ :=
-    W (17, ⟨.add, .term 2, .term 5⟩) (by native_decide)
+    W (17, ⟨.add, .term 2, .term 5⟩) (by decide)
   have m17 : InDomain n (wilkieTermExpr A 17) := C.add_mem m2 m5
   have t17 : TermDecodedAt n τ A 17 :=
     termDecodedAt_of_clause_semantics D C s17 m2 m5 t2 t5 rfl
   have s18 : TermClausesSemantics n τ 18 ⟨.exp, .term 17, .const 5⟩ :=
-    W (18, ⟨.exp, .term 17, .const 5⟩) (by native_decide)
+    W (18, ⟨.exp, .term 17, .const 5⟩) (by decide)
   have m18 : InDomain n (wilkieTermExpr A 18) := C.exp_mem m17 h5
   have t18 : TermDecodedAt n τ A 18 :=
     termDecodedAt_of_clause_semantics D C s18 m17 h5 t17 trivial rfl
   have s19 : TermClausesSemantics n τ 19 ⟨.exp, .term 16, .const 4⟩ :=
-    W (19, ⟨.exp, .term 16, .const 4⟩) (by native_decide)
+    W (19, ⟨.exp, .term 16, .const 4⟩) (by decide)
   have m19 : InDomain n (wilkieTermExpr A 19) := C.exp_mem m16 h4
   have t19 : TermDecodedAt n τ A 19 :=
     termDecodedAt_of_clause_semantics D C s19 m16 h4 t16 trivial rfl
   have s20 : TermClausesSemantics n τ 20 ⟨.add, .term 9, .term 14⟩ :=
-    W (20, ⟨.add, .term 9, .term 14⟩) (by native_decide)
+    W (20, ⟨.add, .term 9, .term 14⟩) (by decide)
   have m20 : InDomain n (wilkieTermExpr A 20) := C.add_mem m9 m14
   have t20 : TermDecodedAt n τ A 20 :=
     termDecodedAt_of_clause_semantics D C s20 m9 m14 t9 t14 rfl
   have s21 : TermClausesSemantics n τ 21 ⟨.add, .term 10, .term 15⟩ :=
-    W (21, ⟨.add, .term 10, .term 15⟩) (by native_decide)
+    W (21, ⟨.add, .term 10, .term 15⟩) (by decide)
   have m21 : InDomain n (wilkieTermExpr A 21) := C.add_mem m10 m15
   have t21 : TermDecodedAt n τ A 21 :=
     termDecodedAt_of_clause_semantics D C s21 m10 m15 t10 t15 rfl
   have s22 : TermClausesSemantics n τ 22 ⟨.exp, .term 20, .const 5⟩ :=
-    W (22, ⟨.exp, .term 20, .const 5⟩) (by native_decide)
+    W (22, ⟨.exp, .term 20, .const 5⟩) (by decide)
   have m22 : InDomain n (wilkieTermExpr A 22) := C.exp_mem m20 h5
   have t22 : TermDecodedAt n τ A 22 :=
     termDecodedAt_of_clause_semantics D C s22 m20 h5 t20 trivial rfl
   have s23 : TermClausesSemantics n τ 23 ⟨.exp, .term 21, .const 4⟩ :=
-    W (23, ⟨.exp, .term 21, .const 4⟩) (by native_decide)
+    W (23, ⟨.exp, .term 21, .const 4⟩) (by decide)
   have m23 : InDomain n (wilkieTermExpr A 23) := C.exp_mem m21 h4
   have t23 : TermDecodedAt n τ A 23 :=
     termDecodedAt_of_clause_semantics D C s23 m21 h4 t21 trivial rfl
   have s24 : TermClausesSemantics n τ 24 ⟨.mul, .term 19, .term 22⟩ :=
-    W (24, ⟨.mul, .term 19, .term 22⟩) (by native_decide)
+    W (24, ⟨.mul, .term 19, .term 22⟩) (by decide)
   have m24 : InDomain n (wilkieTermExpr A 24) := C.mul_mem m19 m22
   have t24 : TermDecodedAt n τ A 24 :=
     termDecodedAt_of_clause_semantics D C s24 m19 m22 t19 t22 rfl
   have s25 : TermClausesSemantics n τ 25 ⟨.mul, .term 18, .term 23⟩ :=
-    W (25, ⟨.mul, .term 18, .term 23⟩) (by native_decide)
+    W (25, ⟨.mul, .term 18, .term 23⟩) (by decide)
   have t25 : TermDecodedAt n τ A 25 :=
     termDecodedAt_of_clause_semantics D C s25 m18 m23 t18 t23 rfl
   exact {
@@ -8026,41 +7937,6 @@ theorem wilkieDiseq_yields_failure
     (D25 (wilkieTermExpr A 24) h24mem).1 h25expr
   exact hDiseq (wilkieTermExpr A 24) h24mem ⟨h24τ, h25τ⟩
 
-theorem wilkieClauses_yields_failure
-    {n : Nat} {τ : Assignment} {A : Algebra}
-    (D : DecodedBy n τ A) (C : Closed n A)
-    (h5 : InDomain n 5)
-    (h : evalCNF τ (wilkieClauses n)) :
-    WilkieFailsAt A 4 5 4 := by
-  have W := (wilkieClauses_correct n τ).1 h
-  have decoded := wilkieTermClauses_decode_sides D C W.1 h5
-  exact wilkieDiseq_yields_failure decoded.1 decoded.2.1 decoded.2.2 W.2
-
-theorem encode_satisfying_yields_countermodel
-    {n : Nat} {τ : Assignment}
-    (h5 : InDomain n 5) (h : evalCNF τ (legacyEncode n)) :
-    ∃ A, Closed n A ∧ HSI n A ∧ WilkieFailsAt A 4 5 4 := by
-  unfold legacyEncode at h
-  rw [evalCNF_append] at h
-  unfold coreClauses at h
-  rw [evalCNF_append] at h
-  have HS := (hsiClauses_correct n τ).1 h.1.1
-  rcases HS with ⟨T, U, AS, MS, DS, EAS, EMS, ES⟩
-  have CD := decodedAlgebra_closed_decoded T
-  let A := decodedAlgebra n τ
-  have hHSI : HSI n A := CD.2.hsi CD.1 U AS MS DS EAS EMS ES
-  have hFail : WilkieFailsAt A 4 5 4 :=
-    wilkieClauses_yields_failure CD.2 CD.1 h5 h.1.2
-  exact ⟨A, CD.1, hHSI, hFail⟩
-
-theorem encode_satisfiable_yields_countermodel
-    {n : Nat} (h5 : InDomain n 5) :
-    Satisfiable (legacyEncode n) →
-      ∃ A, Closed n A ∧ HSI n A ∧ WilkieFailsAt A 4 5 4 := by
-  intro hSat
-  rcases hSat with ⟨τ, hτ⟩
-  exact encode_satisfying_yields_countermodel h5 hτ
-
 theorem core_satisfying_yields_countermodel
     {n : Nat} {τ : Assignment}
     (h5 : InDomain n 5) (h : evalCNF τ (coreClauses n)) :
@@ -8083,13 +7959,6 @@ theorem core_satisfiable_yields_countermodel
   rcases hSat with ⟨τ, hτ⟩
   exact core_satisfying_yields_countermodel h5 hτ
 
-theorem core_satisfiable_of_semantic_assignment
-    {n : Nat} :
-    (∃ τ, CoreSemantics n τ) → Satisfiable (coreClauses n) := by
-  intro h
-  rcases h with ⟨τ, hτ⟩
-  exact ⟨τ, (coreClauses_correct n τ).2 hτ⟩
-
 theorem coreSemantics_of_encoded_countermodel
     {n : Nat} {τ : Assignment} {A : Algebra}
     (C : Closed n A) (H : HSI n A)
@@ -8102,45 +7971,6 @@ theorem coreSemantics_of_encoded_countermodel
     CoreSemantics n τ := by
   exact ⟨encodesAlgebra_yields_hsiSemantics C H E,
     encodesWilkieTerms_yields_wilkieClausesSemantics E.decoded T M Args Cons hFail⟩
-
-theorem core_satisfiable_of_encoded_countermodel
-    {n : Nat} :
-    (∃ A τ,
-      Closed n A ∧ HSI n A ∧
-      EncodesAlgebra n τ A ∧ EncodesWilkieTerms n τ A ∧
-      WilkieTermValuesInDomain n A ∧ WilkieTermSpecArgsInDomain n A ∧
-      WilkieTermSpecsConsistent A ∧ WilkieFailsAt A 4 5 4) →
-      Satisfiable (coreClauses n) := by
-  intro h
-  rcases h with ⟨A, τ, C, H, E, T, M, Args, Cons, hFail⟩
-  exact ⟨τ, (coreClauses_correct n τ).2
-    (coreSemantics_of_encoded_countermodel C H E T M Args Cons hFail)⟩
-
-theorem core_satisfiable_of_model_countermodel
-    {n : Nat} {A : Algebra}
-    (C : Closed n A) (H : HSI n A)
-    (M : WilkieTermValuesInDomain n A)
-    (Args : WilkieTermSpecArgsInDomain n A)
-    (Cons : WilkieTermSpecsConsistent A)
-    (hFail : WilkieFailsAt A 4 5 4) :
-    Satisfiable (coreClauses n) := by
-  let τ := modelAssignment n A
-  have E : EncodesAlgebra n τ A := modelAssignment_encodesAlgebra C H
-  have T : EncodesWilkieTerms n τ A := modelAssignment_encodesWilkieTerms
-  exact ⟨τ, (coreClauses_correct n τ).2
-    (coreSemantics_of_encoded_countermodel C H E T M Args Cons hFail)⟩
-
-theorem core_satisfiable_of_countermodel_data
-    {n : Nat} {A : Algebra}
-    (h5 : InDomain n 5)
-    (C : Closed n A) (H : HSI n A)
-    (hFail : WilkieFailsAt A 4 5 4) :
-    Satisfiable (coreClauses n) := by
-  have M : WilkieTermValuesInDomain n A := wilkieTermValuesInDomain_of_closed C h5
-  have Args : WilkieTermSpecArgsInDomain n A :=
-    wilkieTermSpecArgsInDomain_of_terms M h5
-  have Cons : WilkieTermSpecsConsistent A := wilkieTermSpecsConsistent_all A
-  exact core_satisfiable_of_model_countermodel C H M Args Cons hFail
 
 def ExtraFixedSemantics (n : Nat) (τ : Assignment) : Prop :=
   τ (addVar n 1 1 2) ∧
@@ -8170,22 +8000,6 @@ def ExtraZhangSemantics (n : Nat) (τ : Assignment) : Prop :=
 
 def ExtraClausesSemantics (n : Nat) (τ : Assignment) : Prop :=
   ExtraFixedSemantics n τ ∧ ExtraJacksonSemantics n τ ∧ ExtraZhangSemantics n τ
-
-theorem extraFixedClauses_correct (n : Nat) (τ : Assignment) :
-    evalCNF τ [
-      [pos (addVar n 1 1 2)],
-      [pos (addVar n 2 1 3)],
-      [neg (addVar n 1 4 1)],
-      [neg (addVar n 2 4 1)],
-      [neg (addVar n 4 4 1)],
-      [neg (mulVar n 4 4 1)],
-      [neg (addVar n 4 4 4)],
-      [neg (mulVar n 4 4 4)],
-      [neg (addVar n 1 4 4)],
-      [neg (addVar n 2 4 4)]
-    ] ↔ ExtraFixedSemantics n τ := by
-  simp [ExtraFixedSemantics, evalCNF, evalClause, evalLit_pos_of_pos, evalLit_neg_of_pos,
-    addVar_pos, mulVar_pos]
 
 theorem extraJacksonClauses_correct (n : Nat) (τ : Assignment) :
     evalCNF τ
@@ -8259,16 +8073,6 @@ theorem extraZhangClauses_correct (n : Nat) (τ : Assignment) :
     cases p with
     | mk i l =>
         exact (extraZhangBlock_correct n τ v i l).2 (h v hv (i, l) hp)
-
-theorem extraClauses_correct (n : Nat) (τ : Assignment) :
-    evalCNF τ (extraClauses n) ↔ ExtraClausesSemantics n τ := by
-  unfold extraClauses ExtraClausesSemantics
-  rw [evalCNF_append]
-  rw [evalCNF_append]
-  rw [extraFixedClauses_correct]
-  rw [extraJacksonClauses_correct]
-  rw [extraZhangClauses_correct]
-  simp [and_assoc]
 
 structure ExtraConstraints (n : Nat) (A : Algebra) : Prop where
   add_one_one : A.add 1 1 = 2
@@ -8376,146 +8180,12 @@ encoder.  The four `lee_...` fields are Zhang's L2-L5 consequences of Lee
 Lemma 8.13.  The `jackson_linear` field is the finite linear fragment of
 Jackson's lemma used by the simplified encoder.
 -/
-structure ZhangPaperConsequences (n : Nat) (A : Algebra) : Prop where
-  add_one_one : A.add 1 1 = 2
-  add_two_one : A.add 2 1 = 3
-  m01_one_add_a_ne_one : A.add 1 4 ≠ 1
-  m02_two_add_a_ne_one : A.add 2 4 ≠ 1
-  m03_a_add_a_ne_one : A.add 4 4 ≠ 1
-  m04_a_mul_a_ne_one : A.mul 4 4 ≠ 1
-  m07_one_add_a_ne_a : A.add 1 4 ≠ 4
-  m08_two_add_a_ne_a : A.add 2 4 ≠ 4
-  m09_a_add_a_ne_a : A.add 4 4 ≠ 4
-  m10_a_mul_a_ne_a : A.mul 4 4 ≠ 4
-  jackson_linear :
-    ∀ {i j}, i ∈ [1, 2, 3] → j ∈ [1, 2, 3] →
-      A.add i (A.mul j 4) ≠ 5
-  lee_q_not_p_mul :
-    ∀ {v}, InDomain n v → A.mul (Pterm A 4) v ≠ Qterm A 4
-  lee_p_not_q_mul :
-    ∀ {v}, InDomain n v → A.mul (Qterm A 4) v ≠ Pterm A 4
-  lee_s_not_r_mul :
-    ∀ {v}, InDomain n v → A.mul (Rterm A 4) v ≠ Sterm A 4
-  lee_r_not_s_mul :
-    ∀ {v}, InDomain n v → A.mul (Sterm A 4) v ≠ Rterm A 4
-
-theorem extraConstraints_of_zhangPaperConsequences
-    {n : Nat} {A : Algebra} (Z : ZhangPaperConsequences n A) :
-    ExtraConstraints n A := by
-  refine {
-    add_one_one := Z.add_one_one
-    add_two_one := Z.add_two_one
-    one_add_x_ne_one := Z.m01_one_add_a_ne_one
-    two_add_x_ne_one := Z.m02_two_add_a_ne_one
-    x_add_x_ne_one := Z.m03_a_add_a_ne_one
-    x_mul_x_ne_one := Z.m04_a_mul_a_ne_one
-    x_add_x_ne_x := Z.m09_a_add_a_ne_a
-    x_mul_x_ne_x := Z.m10_a_mul_a_ne_a
-    one_add_x_ne_x := Z.m07_one_add_a_ne_a
-    two_add_x_ne_x := Z.m08_two_add_a_ne_a
-    jackson := ?jackson
-    zhang_pq_forward := ?zhang_pq_forward
-    zhang_pq_backward := ?zhang_pq_backward
-    zhang_rs_forward := ?zhang_rs_forward
-    zhang_rs_backward := ?zhang_rs_backward
-  }
-  · intro i j z hi hj _hz hbad
-    have hlinear : A.add i (A.mul j 4) = 5 := by
-      rw [hbad.2]
-      exact hbad.1
-    exact Z.jackson_linear hi hj hlinear
-  · intro i l v hi hl hv hbad
-    have hdiv : A.mul (Pterm A 4) v = Qterm A 4 := by
-      rw [hbad.1, hbad.2.1]
-      exact hbad.2.2
-    exact Z.lee_q_not_p_mul hv hdiv
-  · intro i l v hi hl hv hbad
-    have hdiv : A.mul (Qterm A 4) v = Pterm A 4 := by
-      rw [hbad.1, hbad.2.1]
-      exact hbad.2.2
-    exact Z.lee_p_not_q_mul hv hdiv
-  · intro i l v hi hl hv hbad
-    have hdiv : A.mul (Rterm A 4) v = Sterm A 4 := by
-      rw [hbad.1, hbad.2.1]
-      exact hbad.2.2
-    exact Z.lee_s_not_r_mul hv hdiv
-  · intro i l v hi hl hv hbad
-    have hdiv : A.mul (Sterm A 4) v = Rterm A 4 := by
-      rw [hbad.1, hbad.2.1]
-      exact hbad.2.2
-    exact Z.lee_r_not_s_mul hv hdiv
-
 theorem mem_123_inDomain {n i : Nat}
     (h5 : InDomain n 5) (hi : i ∈ [1, 2, 3]) :
     InDomain n i := by
   rw [InDomain_iff] at h5 ⊢
   simp at hi
   omega
-
-theorem zhangPaperConsequences_of_extraConstraints
-    {n : Nat} {A : Algebra}
-    (h5 : InDomain n 5) (C : Closed n A) (E : ExtraConstraints n A) :
-    ZhangPaperConsequences n A := by
-  have h1 : InDomain n 1 := InDomain.of_le h5 (by omega) (by omega)
-  have h4 : InDomain n 4 := InDomain.of_le h5 (by omega) (by omega)
-  have hx2 : InDomain n (x2 A 4) := by
-    unfold x2
-    exact C.mul_mem h4 h4
-  have hx3 : InDomain n (x3 A 4) := by
-    unfold x3
-    exact C.mul_mem hx2 h4
-  have hx4 : InDomain n (x4 A 4) := by
-    unfold x4
-    exact C.mul_mem hx3 h4
-  have hP : InDomain n (Pterm A 4) := by
-    unfold Pterm
-    exact C.add_mem h1 h4
-  have hQ : InDomain n (Qterm A 4) := by
-    unfold Qterm
-    exact C.add_mem hP hx2
-  have hR : InDomain n (Rterm A 4) := by
-    unfold Rterm
-    exact C.add_mem h1 hx3
-  have hS : InDomain n (Sterm A 4) := by
-    unfold Sterm
-    exact C.add_mem (C.add_mem h1 hx2) hx4
-  refine {
-    add_one_one := E.add_one_one
-    add_two_one := E.add_two_one
-    m01_one_add_a_ne_one := E.one_add_x_ne_one
-    m02_two_add_a_ne_one := E.two_add_x_ne_one
-    m03_a_add_a_ne_one := E.x_add_x_ne_one
-    m04_a_mul_a_ne_one := E.x_mul_x_ne_one
-    m07_one_add_a_ne_a := E.one_add_x_ne_x
-    m08_two_add_a_ne_a := E.two_add_x_ne_x
-    m09_a_add_a_ne_a := E.x_add_x_ne_x
-    m10_a_mul_a_ne_a := E.x_mul_x_ne_x
-    jackson_linear := ?jackson_linear
-    lee_q_not_p_mul := ?lee_q_not_p_mul
-    lee_p_not_q_mul := ?lee_p_not_q_mul
-    lee_s_not_r_mul := ?lee_s_not_r_mul
-    lee_r_not_s_mul := ?lee_r_not_s_mul
-  }
-  · intro i j hi hj hbad
-    have hjD : InDomain n j := mem_123_inDomain h5 hj
-    have hz : InDomain n (A.mul j 4) := C.mul_mem hjD h4
-    exact E.jackson hi hj hz ⟨hbad, rfl⟩
-  · intro v hv hbad
-    exact E.zhang_pq_forward hP hQ hv ⟨rfl, rfl, hbad⟩
-  · intro v hv hbad
-    exact E.zhang_pq_backward hQ hP hv ⟨rfl, rfl, hbad⟩
-  · intro v hv hbad
-    exact E.zhang_rs_forward hR hS hv ⟨rfl, rfl, hbad⟩
-  · intro v hv hbad
-    exact E.zhang_rs_backward hS hR hv ⟨rfl, rfl, hbad⟩
-
-theorem extraConstraints_iff_zhangPaperConsequences
-    {n : Nat} {A : Algebra}
-    (h5 : InDomain n 5) (C : Closed n A) :
-    ExtraConstraints n A ↔ ZhangPaperConsequences n A := by
-  constructor
-  · exact zhangPaperConsequences_of_extraConstraints h5 C
-  · exact extraConstraints_of_zhangPaperConsequences
 
 theorem extraConstraints_yields_extraSemantics_modelAssignment
     {n : Nat} {A : Algebra}
@@ -8623,118 +8293,6 @@ theorem simpEncExtraClauses_modelAssignment
   · exact (extraJacksonClauses_correct n (modelAssignment n A)).2 hExtraSem.2.1
   · exact simpEncJacksonQuadraticClauses_modelAssignment C H h5 h112 h213 hFail
   · exact (extraZhangClauses_correct n (modelAssignment n A)).2 hExtraSem.2.2
-
-theorem extraSemantics_yields_extraConstraints
-    {n : Nat} {τ : Assignment} {A : Algebra}
-    (h5 : InDomain n 5)
-    (D : DecodedBy n τ A)
-    (K : WilkieDecodedKeyTerms n τ A)
-    (E : ExtraClausesSemantics n τ) :
-    ExtraConstraints n A := by
-  have h1 : InDomain n 1 := InDomain.of_le h5 (by omega) (by omega)
-  have h2 : InDomain n 2 := InDomain.of_le h5 (by omega) (by omega)
-  have h4 : InDomain n 4 := InDomain.of_le h5 (by omega) (by omega)
-  rcases E with ⟨F, J, Z⟩
-  rcases F with ⟨t112, t213, n141, n241, n441, nm441, n444, nm444, n144, n244⟩
-  refine {
-    add_one_one := ?add_one_one
-    add_two_one := ?add_two_one
-    one_add_x_ne_one := ?one_add_x_ne_one
-    two_add_x_ne_one := ?two_add_x_ne_one
-    x_add_x_ne_one := ?x_add_x_ne_one
-    x_mul_x_ne_one := ?x_mul_x_ne_one
-    x_add_x_ne_x := ?x_add_x_ne_x
-    x_mul_x_ne_x := ?x_mul_x_ne_x
-    one_add_x_ne_x := ?one_add_x_ne_x
-    two_add_x_ne_x := ?two_add_x_ne_x
-    jackson := ?jackson
-    zhang_pq_forward := ?zhang_pq_forward
-    zhang_pq_backward := ?zhang_pq_backward
-    zhang_rs_forward := ?zhang_rs_forward
-    zhang_rs_backward := ?zhang_rs_backward
-  }
-  · exact (D.add_iff h1 h1 h2).2 t112
-  · exact (D.add_iff h2 h1 (InDomain.of_le h5 (by omega) (by omega))).2 t213
-  · intro h
-    exact n141 ((D.add_iff h1 h4 h1).1 h)
-  · intro h
-    exact n241 ((D.add_iff h2 h4 h1).1 h)
-  · intro h
-    exact n441 ((D.add_iff h4 h4 h1).1 h)
-  · intro h
-    exact nm441 ((D.mul_iff h4 h4 h1).1 h)
-  · intro h
-    exact n444 ((D.add_iff h4 h4 h4).1 h)
-  · intro h
-    exact nm444 ((D.mul_iff h4 h4 h4).1 h)
-  · intro h
-    exact n144 ((D.add_iff h1 h4 h4).1 h)
-  · intro h
-    exact n244 ((D.add_iff h2 h4 h4).1 h)
-  · intro i j z hi hj hz hbad
-    have hiD : InDomain n i := mem_123_inDomain h5 hi
-    have hjD : InDomain n j := mem_123_inDomain h5 hj
-    exact J j hj z hz i hi
-      ⟨(D.add_iff hiD hz h5).1 hbad.1,
-        (D.mul_iff hjD h4 hz).1 hbad.2⟩
-  · intro i l v hi hl hv hbad
-    have hp : (i, l) ∈ product2 (values n) (values n) := by
-      rw [mem_product2_iff]
-      exact ⟨hi, hl⟩
-    have hZ := (Z v hv (i, l) hp).1
-    have hPExpr : wilkieTermExpr A 0 = i := by
-      simpa [wilkieTermExpr] using hbad.1
-    have hQExpr : wilkieTermExpr A 4 = l := by
-      simpa [wilkieTermExpr] using hbad.2.1
-    exact hZ
-      ⟨(K.t0 i hi).1 hPExpr,
-        (K.t4 l hl).1 hQExpr,
-        (D.mul_iff hi hv hl).1 hbad.2.2⟩
-  · intro i l v hi hl hv hbad
-    have hp : (i, l) ∈ product2 (values n) (values n) := by
-      rw [mem_product2_iff]
-      exact ⟨hi, hl⟩
-    have hZ := (Z v hv (i, l) hp).2.1
-    have hQExpr : wilkieTermExpr A 4 = i := by
-      simpa [wilkieTermExpr] using hbad.1
-    have hPExpr : wilkieTermExpr A 0 = l := by
-      simpa [wilkieTermExpr] using hbad.2.1
-    exact hZ
-      ⟨(K.t4 i hi).1 hQExpr,
-        (K.t0 l hl).1 hPExpr,
-        (D.mul_iff hi hv hl).1 hbad.2.2⟩
-  · intro i l v hi hl hv hbad
-    have hp : (i, l) ∈ product2 (values n) (values n) := by
-      rw [mem_product2_iff]
-      exact ⟨hi, hl⟩
-    have hZ := (Z v hv (i, l) hp).2.2.1
-    have hRExpr : wilkieTermExpr A 8 = i := by
-      simpa [wilkieTermExpr] using hbad.1
-    have hSExpr : wilkieTermExpr A 13 = l := by
-      simpa [wilkieTermExpr] using hbad.2.1
-    exact hZ
-      ⟨(K.t8 i hi).1 hRExpr,
-        (K.t13 l hl).1 hSExpr,
-        (D.mul_iff hi hv hl).1 hbad.2.2⟩
-  · intro i l v hi hl hv hbad
-    have hp : (i, l) ∈ product2 (values n) (values n) := by
-      rw [mem_product2_iff]
-      exact ⟨hi, hl⟩
-    have hZ := (Z v hv (i, l) hp).2.2.2
-    have hSExpr : wilkieTermExpr A 13 = i := by
-      simpa [wilkieTermExpr] using hbad.1
-    have hRExpr : wilkieTermExpr A 8 = l := by
-      simpa [wilkieTermExpr] using hbad.2.1
-    exact hZ
-      ⟨(K.t13 i hi).1 hSExpr,
-        (K.t8 l hl).1 hRExpr,
-        (D.mul_iff hi hv hl).1 hbad.2.2⟩
-
-structure SimplifiedCountermodel (n : Nat) (A : Algebra) : Prop where
-  closed : Closed n A
-  hsi : HSI n A
-  wilkie_fails : WilkieFailsAt A 4 5 4
-  extra : ExtraConstraints n A
 
 def ViolatesWilkie (n : Nat) (A : Algebra) : Prop :=
   ∃ x y, InDomain n x ∧ InDomain n y ∧ WilkieFailsAt A x y x
@@ -9027,29 +8585,6 @@ theorem simpEncLexTranspositionPairs_mem_spec
       omega
     · omega
 
-theorem simpEncLexTranspositionPairs_mem_of_spec
-    {n left right : Nat}
-    (hleft : InDomain n left) (hright : InDomain n right)
-    (hleftProtected : 5 < left) (_hrightProtected : 5 < right)
-    (hleftRight : left < right) :
-    (left, right) ∈ simpEncLexTranspositionPairs n := by
-  unfold simpEncLexTranspositionPairs
-  rw [mem_flatMap_iff]
-  refine ⟨left, ?_, ?_⟩
-  · rw [mem_rangeFromTo_iff (lo := 6) (hi := n) (by
-      rw [InDomain_iff] at hleft
-      omega)]
-    rw [InDomain_iff] at hleft
-    omega
-  · apply List.mem_map.mpr
-    refine ⟨right, ?_, rfl⟩
-    have hle : left + 1 ≤ n := by
-      rw [InDomain_iff] at hright
-      omega
-    rw [mem_rangeFromTo_iff (lo := left + 1) (hi := n) hle]
-    rw [InDomain_iff] at hright
-    omega
-
 theorem swapNat_mem_domain
     {n left right x : Nat}
     (hleft : InDomain n left) (hright : InDomain n right)
@@ -9192,73 +8727,6 @@ theorem modelAssignment_lexTranspositionImageVar_iff
     rw [lexEvalOp_swapRelabeling_exp hleft hright]
     simpa [lexTranspositionImageVar, opVar, sx, sy, sv] using hmodel.trans hswap
 
-theorem decodedBy_lexEntryVar_iff
-    {n : Nat} {τ : Assignment} {A : Algebra}
-    (D : DecodedBy n τ A) (H : HSI n A)
-    {op : Op} {x y value : Nat}
-    (hx : InDomain n x) (hy : InDomain n y) (hvalue : InDomain n value) :
-    τ (lexEntryVar n (op, x, y, value)) ↔
-      lexEvalOp A op x y = value := by
-  cases op
-  · simpa [lexEntryVar, opVar, lexEvalOp_add_eq H hx hy]
-      using (D.add_iff hx hy hvalue).symm
-  · simpa [lexEntryVar, opVar, lexEvalOp_mul_eq H hx hy]
-      using (D.mul_iff hx hy hvalue).symm
-  · simpa [lexEntryVar, opVar, lexEvalOp]
-      using (D.exp_iff hx hy hvalue).symm
-
-theorem decodedBy_lexTranspositionImageVar_iff
-    {n left right : Nat} {τ : Assignment} {A : Algebra}
-    (D : DecodedBy n τ A) (H : HSI n A)
-    (hleft : InDomain n left) (hright : InDomain n right)
-    {op : Op} {x y value : Nat}
-    (hx : InDomain n x) (hy : InDomain n y) (hvalue : InDomain n value) :
-    τ (lexTranspositionImageVar n left right (op, x, y, value)) ↔
-      lexEvalOp (relabelAlgebra (swapRelabeling n left right hleft hright) A)
-        op x y = value := by
-  let sx := swapNat left right x
-  let sy := swapNat left right y
-  let sv := swapNat left right value
-  have hsx : InDomain n sx := swapNat_mem_domain hleft hright hx
-  have hsy : InDomain n sy := swapNat_mem_domain hleft hright hy
-  have hsv : InDomain n sv := swapNat_mem_domain hleft hright hvalue
-  cases op
-  · have hdecoded := (D.add_iff hsx hsy hsv).symm
-    have hswap :
-        (A.add sx sy = sv) ↔
-          swapNat left right (A.add sx sy) = value := by
-      simpa [sv] using
-        (swapNat_eq_iff_eq_swapNat left right (A.add sx sy) value).symm
-    rw [lexEvalOp_swapRelabeling_add H hleft hright hx hy]
-    simpa [lexTranspositionImageVar, opVar, sx, sy, sv] using hdecoded.trans hswap
-  · have hdecoded := (D.mul_iff hsx hsy hsv).symm
-    have hswap :
-        (A.mul sx sy = sv) ↔
-          swapNat left right (A.mul sx sy) = value := by
-      simpa [sv] using
-        (swapNat_eq_iff_eq_swapNat left right (A.mul sx sy) value).symm
-    rw [lexEvalOp_swapRelabeling_mul H hleft hright hx hy]
-    simpa [lexTranspositionImageVar, opVar, sx, sy, sv] using hdecoded.trans hswap
-  · have hdecoded := (D.exp_iff hsx hsy hsv).symm
-    have hswap :
-        (A.exp sx sy = sv) ↔
-          swapNat left right (A.exp sx sy) = value := by
-      simpa [sv] using
-        (swapNat_eq_iff_eq_swapNat left right (A.exp sx sy) value).symm
-    rw [lexEvalOp_swapRelabeling_exp hleft hright]
-    simpa [lexTranspositionImageVar, opVar, sx, sy, sv] using hdecoded.trans hswap
-
-theorem decide_eq_of_iff {P Q : Prop} [Decidable P] [Decidable Q]
-    (h : P ↔ Q) :
-    decide P = decide Q := by
-  by_cases hp : P
-  · by_cases hq : Q
-    · simp [hp, hq]
-    · exact False.elim (hq (h.mp hp))
-  · by_cases hq : Q
-    · exact False.elim (hp (h.mpr hq))
-    · simp [hp, hq]
-
 theorem assignmentLexLeft_modelAssignment_eq_lexTable
     {n : Nat} {A : Algebra} (H : HSI n A) (left right : Nat) :
     assignmentLexLeft (modelAssignment n A)
@@ -9286,33 +8754,6 @@ theorem assignmentLexRight_modelAssignment_eq_relabelLexTable
   exact modelAssignment_lexTranspositionImageVar_iff H
     hleft hright hdom.1 hdom.2.1 hdom.2.2
 
-theorem assignmentLexLeft_decodedBy_eq_lexTable
-    {n : Nat} {τ : Assignment} {A : Algebra}
-    (D : DecodedBy n τ A) (H : HSI n A) (left right : Nat) :
-    assignmentLexLeft τ (lexTranspositionVarPairs n left right) =
-      lexTable n A := by
-  classical
-  simp [assignmentLexLeft, lexTranspositionVarPairs, lexTable]
-  intro op x y value hentry
-  have hdom := mem_lexTableEntries_domain (n := n)
-    (op := op) (x := x) (y := y) (value := value) hentry
-  exact decodedBy_lexEntryVar_iff D H hdom.1 hdom.2.1 hdom.2.2
-
-theorem assignmentLexRight_decodedBy_eq_relabelLexTable
-    {n left right : Nat} {τ : Assignment} {A : Algebra}
-    (D : DecodedBy n τ A) (H : HSI n A)
-    (hleft : InDomain n left) (hright : InDomain n right) :
-    assignmentLexRight τ (lexTranspositionVarPairs n left right) =
-      lexTable n
-        (relabelAlgebra (swapRelabeling n left right hleft hright) A) := by
-  classical
-  simp [assignmentLexRight, lexTranspositionVarPairs, lexTable]
-  intro op x y value hentry
-  have hdom := mem_lexTableEntries_domain (n := n)
-    (op := op) (x := x) (y := y) (value := value) hentry
-  exact decodedBy_lexTranspositionImageVar_iff D H
-    hleft hright hdom.1 hdom.2.1 hdom.2.2
-
 theorem modelAssignment_assignmentLexLE_iff_lexTransposition
     {n left right : Nat} {A : Algebra} (H : HSI n A)
     (hleft : InDomain n left) (hright : InDomain n right) :
@@ -9324,18 +8765,6 @@ theorem modelAssignment_assignmentLexLE_iff_lexTransposition
   rw [AssignmentLexLE_iff_boolLexLE]
   rw [assignmentLexLeft_modelAssignment_eq_lexTable H left right]
   rw [assignmentLexRight_modelAssignment_eq_relabelLexTable H hleft hright]
-
-theorem decodedBy_assignmentLexLE_iff_lexTransposition
-    {n left right : Nat} {τ : Assignment} {A : Algebra}
-    (D : DecodedBy n τ A) (H : HSI n A)
-    (hleft : InDomain n left) (hright : InDomain n right) :
-    AssignmentLexLE τ (lexTranspositionVarPairs n left right) ↔
-      boolLexLE (lexTable n A)
-        (lexTable n
-          (relabelAlgebra (swapRelabeling n left right hleft hright) A)) := by
-  rw [AssignmentLexLE_iff_boolLexLE]
-  rw [assignmentLexLeft_decodedBy_eq_lexTable D H left right]
-  rw [assignmentLexRight_decodedBy_eq_relabelLexTable D H hleft hright]
 
 theorem opVar_le_primaryCount
     {n : Nat} {op : Op} {i j k : Nat}
@@ -9575,20 +9004,6 @@ theorem lexTranspositionClausesFrom_satisfiable_iff_assignmentLexLE
     (lexTranspositionVarPairs_positive n left right)
     (lexTranspositionVarPairs_below hleft hright haux)
 
-theorem lexTranspositionClausesFrom_modelAssignment_satisfiable_iff
-    {n left right aux : Nat} {A : Algebra} (H : HSI n A)
-    (hleft : InDomain n left) (hright : InDomain n right)
-    (haux : primaryCount n < aux) :
-    (∃ τ' : Assignment,
-      (∀ v, v < aux → (τ' v ↔ modelAssignment n A v)) ∧
-      evalCNF τ' (lexTranspositionClausesFrom n left right aux)) ↔
-      boolLexLE (lexTable n A)
-        (lexTable n
-          (relabelAlgebra (swapRelabeling n left right hleft hright) A)) := by
-  rw [lexTranspositionClausesFrom_satisfiable_iff_assignmentLexLE
-    hleft hright haux]
-  exact modelAssignment_assignmentLexLE_iff_lexTransposition H hleft hright
-
 theorem lexTranspositionClausesFrom_satisfiable_of_assignment_agrees_primary
     {n left right aux : Nat} {τ : Assignment} {A : Algebra}
     (H : HSI n A)
@@ -9621,74 +9036,6 @@ theorem lexTranspositionClausesFrom_satisfiable_of_assignment_agrees_primary
       (pairs := lexTranspositionVarPairs n left right) hcongr).1 hmodelAssign
   exact (lexTranspositionClausesFrom_satisfiable_iff_assignmentLexLE
     hleft hright haux).2 hassign
-
-theorem lexTranspositionClausesFrom_satisfying_yields_lexTransposition
-    {n left right aux : Nat} {τ : Assignment} {A : Algebra}
-    (D : DecodedBy n τ A) (H : HSI n A)
-    (hleft : InDomain n left) (hright : InDomain n right)
-    (haux : primaryCount n < aux)
-    (hcnf : evalCNF τ (lexTranspositionClausesFrom n left right aux)) :
-    boolLexLE (lexTable n A)
-      (lexTable n
-        (relabelAlgebra (swapRelabeling n left right hleft hright) A)) := by
-  unfold lexTranspositionClausesFrom at hcnf
-  have hassign : AssignmentLexLE τ (lexTranspositionVarPairs n left right) :=
-    lexSmallerEqClausesFrom_implies_assignmentLexLE
-      (by omega) (lexTranspositionVarPairs_positive n left right) hcnf
-  exact (decodedBy_assignmentLexLE_iff_lexTransposition
-    D H hleft hright).1 hassign
-
-theorem simpEncLexClausesFromAux_satisfying_yields_pairs
-    {n aux : Nat} {pairs : List (Nat × Nat)}
-    {τ : Assignment} {A : Algebra}
-    (D : DecodedBy n τ A) (H : HSI n A)
-    (hpairs : ∀ p, p ∈ pairs → IsSimpEncLexTranspositionPair n p)
-    (haux : primaryCount n < aux)
-    (hcnf : evalCNF τ (simpEncLexClausesFromAux n aux pairs)) :
-    LexTranspositionLeadersForPairs n A pairs := by
-  induction pairs generalizing aux with
-  | nil =>
-      intro left right hmem _hleft _hright
-      cases hmem
-  | cons p rest ih =>
-      cases p with
-      | mk left0 right0 =>
-          have hsplit :
-              evalCNF τ (lexTranspositionClausesFrom n left0 right0 aux) ∧
-                evalCNF τ
-                  (simpEncLexClausesFromAux n
-                    (aux + lexTranspositionAuxCount n left0 right0) rest) := by
-            simpa [simpEncLexClausesFromAux, evalCNF_append] using hcnf
-          have hp0 : IsSimpEncLexTranspositionPair n (left0, right0) :=
-            hpairs (left0, right0) (by simp)
-          have hhead :
-              boolLexLE (lexTable n A)
-                (lexTable n
-                  (relabelAlgebra
-                    (swapRelabeling n left0 right0 hp0.1 hp0.2.1) A)) :=
-            lexTranspositionClausesFrom_satisfying_yields_lexTransposition
-              D H hp0.1 hp0.2.1 haux hsplit.1
-          have hpairsTail :
-              ∀ p, p ∈ rest → IsSimpEncLexTranspositionPair n p := by
-            intro p hp
-            exact hpairs p (by simp [hp])
-          have hauxTail :
-              primaryCount n <
-                aux + lexTranspositionAuxCount n left0 right0 := by
-            have hpos :
-                0 < lexTranspositionAuxCount n left0 right0 := by
-              unfold lexTranspositionAuxCount
-              exact lexSmallerEqAuxCount_pos _
-            omega
-          have htail :
-              LexTranspositionLeadersForPairs n A rest :=
-            ih hpairsTail hauxTail hsplit.2
-          intro left right hmem hleft hright
-          cases hmem with
-          | head =>
-              simpa using hhead
-          | tail _ hmemTail =>
-              exact htail hmemTail hleft hright
 
 theorem simpEncLexClausesFromAux_satisfiable_of_pairs_lexLeaders
     {n aux : Nat} {pairs : List (Nat × Nat)}
@@ -9780,61 +9127,9 @@ def LexTranspositionLeadersHold (n : Nat) (A : Algebra) : Prop :=
       boolLexLE (lexTable n A)
         (lexTable n (relabelAlgebra (swapRelabeling n left right hleft hright) A))
 
-theorem simpEncLexClauses_satisfying_yields_lexTranspositionLeaders
-    {n aux : Nat} {τ : Assignment} {A : Algebra}
-    (D : DecodedBy n τ A) (H : HSI n A)
-    (haux : primaryCount n < aux)
-    (hcnf : evalCNF τ (simpEncLexClauses n aux)) :
-    LexTranspositionLeadersHold n A := by
-  have hpairs :
-      ∀ p, p ∈ simpEncLexTranspositionPairs n →
-        IsSimpEncLexTranspositionPair n p := by
-    intro p hp
-    exact simpEncLexTranspositionPairs_mem_spec hp
-  have hforPairs :
-      LexTranspositionLeadersForPairs n A
-        (simpEncLexTranspositionPairs n) := by
-    unfold simpEncLexClauses at hcnf
-    exact simpEncLexClausesFromAux_satisfying_yields_pairs
-      D H hpairs haux hcnf
-  intro left right hleft hright hleftProtected hrightProtected hleftRight
-  exact hforPairs
-    (simpEncLexTranspositionPairs_mem_of_spec
-      hleft hright hleftProtected hrightProtected hleftRight)
-    hleft hright
-
 structure LexNormalizedCountermodel (n : Nat) (A : Algebra) : Prop where
   normalized : NormalizedCountermodel n A
   lex_leaders : LexTranspositionLeadersHold n A
-
-theorem lexTranspositionClausesFrom_satisfiable_of_lexTranspositionLeader
-    {n left right aux : Nat} {A : Algebra}
-    (H : HSI n A)
-    (hleft : InDomain n left) (hright : InDomain n right)
-    (hleftProtected : 5 < left) (hrightProtected : 5 < right)
-    (hleftRight : left < right)
-    (haux : primaryCount n < aux)
-    (hlex : LexTranspositionLeadersHold n A) :
-    ∃ τ' : Assignment,
-      (∀ v, v < aux → (τ' v ↔ modelAssignment n A v)) ∧
-      evalCNF τ' (lexTranspositionClausesFrom n left right aux) := by
-  exact (lexTranspositionClausesFrom_modelAssignment_satisfiable_iff
-    H hleft hright haux).2
-      (hlex hleft hright hleftProtected hrightProtected hleftRight)
-
-theorem lexNormalizedCountermodel_satisfies_simpEncLexBlock
-    {n left right aux : Nat} {A : Algebra}
-    (hA : LexNormalizedCountermodel n A)
-    (hleft : InDomain n left) (hright : InDomain n right)
-    (hleftProtected : 5 < left) (hrightProtected : 5 < right)
-    (hleftRight : left < right)
-    (haux : primaryCount n < aux) :
-    ∃ τ' : Assignment,
-      (∀ v, v < aux → (τ' v ↔ modelAssignment n A v)) ∧
-      evalCNF τ' (lexTranspositionClausesFrom n left right aux) :=
-  lexTranspositionClausesFrom_satisfiable_of_lexTranspositionLeader
-    hA.normalized.hsi hleft hright hleftProtected hrightProtected
-    hleftRight haux hA.lex_leaders
 
 theorem simpEncLexClauses_satisfiable_of_lexNormalizedCountermodel
     {n aux : Nat} {A : Algebra}
@@ -9863,28 +9158,6 @@ theorem simpEncLexClauses_satisfiable_of_lexNormalizedCountermodel
   unfold simpEncLexClauses
   exact simpEncLexClausesFromAux_satisfiable_of_pairs_lexLeaders
     hA.normalized.hsi hpairs haux hprimary hlexPairs
-
-def SimpEncLexSymmetryBreakingCorrectnessTarget (n aux : Nat) : Prop :=
-  (∀ {τ : Assignment} {A : Algebra},
-    DecodedBy n τ A → HSI n A →
-      evalCNF τ (simpEncLexClauses n aux) →
-        LexTranspositionLeadersHold n A) ∧
-  (∀ {A : Algebra},
-    LexNormalizedCountermodel n A →
-      ∃ τ' : Assignment,
-        (∀ v, v < aux → (τ' v ↔ modelAssignment n A v)) ∧
-        evalCNF τ' (simpEncLexClauses n aux))
-
-theorem simpEncLexSymmetryBreaking_correct
-    {n aux : Nat} (haux : primaryCount n < aux) :
-    SimpEncLexSymmetryBreakingCorrectnessTarget n aux := by
-  constructor
-  · intro τ A D H hcnf
-    exact simpEncLexClauses_satisfying_yields_lexTranspositionLeaders
-      D H haux hcnf
-  · intro A hA
-    exact simpEncLexClauses_satisfiable_of_lexNormalizedCountermodel
-      hA haux
 
 theorem idRelabeling_fixesProtectedLabels (n : Nat) :
     FixesProtectedLabels (idRelabeling n) := by
@@ -11286,16 +10559,6 @@ theorem wilkieCore_right_posCoeff_generic
       mul (exp (add (exp p x) (exp q x)) z) (exp (add (exp r z) (exp s z)) x) := by
           rw [one_mul, one_mul]
 
-theorem posCoeff_mem
-    {n : Nat} {A : Algebra} (C : Closed n A)
-    (h1 : InDomain n 1) (k : Nat) :
-    InDomain n (posCoeff A.add 1 k) := by
-  induction k with
-  | zero =>
-      exact h1
-  | succ k ih =>
-      exact C.add_mem ih h1
-
 theorem wilkieCore_right_posCoeff_hsi
     {n : Nat} {A : Algebra} (C : Closed n A) (H : HSI n A)
     {p q r s x : Nat}
@@ -11676,173 +10939,6 @@ theorem normalizingRelabeling_exists_of_wilkie_failure
   exact relabeling_exists_of_distinct_one_four h5 h2D h3D hx hy
     h12 h13 h14 h15 h23 h24 h25 h34 h35 h45
 
-structure ZhangJustifiedCountermodel (n : Nat) (A : Algebra) : Prop where
-  closed : Closed n A
-  hsi : HSI n A
-  wilkie_fails : WilkieFailsAt A 4 5 4
-  zhang : ZhangPaperConsequences n A
-
-theorem normalizedCountermodel_to_countermodel
-    {n : Nat} {A : Algebra} (h : NormalizedCountermodel n A) :
-    Countermodel n A where
-  closed := h.closed
-  hsi := h.hsi
-  wilkie_fails := h.wilkie_fails
-
-theorem normalizedCountermodel_to_simplifiedCountermodel
-    {n : Nat} {A : Algebra} (h5 : InDomain n 5)
-    (h112 : A.add 1 1 = 2) (h213 : A.add 2 1 = 3)
-    (h : Countermodel n A) :
-    SimplifiedCountermodel n A where
-  closed := h.closed
-  hsi := h.hsi
-  wilkie_fails := h.wilkie_fails
-  extra := extraConstraints_of_normalizedAndWilkieFails
-    h.closed h.hsi h5 h.wilkie_fails h112 h213
-
-theorem normalizedCountermodel_to_simplifiedCountermodel'
-    {n : Nat} {A : Algebra} (h5 : InDomain n 5)
-    (h : NormalizedCountermodel n A) :
-    SimplifiedCountermodel n A :=
-  normalizedCountermodel_to_simplifiedCountermodel h5
-    h.add_one_one h.add_two_one
-    (normalizedCountermodel_to_countermodel h)
-
-theorem normalizedCountermodel_to_zhangJustifiedCountermodel
-    {n : Nat} {A : Algebra} (h5 : InDomain n 5)
-    (h112 : A.add 1 1 = 2) (h213 : A.add 2 1 = 3)
-    (h : Countermodel n A) :
-    ZhangJustifiedCountermodel n A where
-  closed := h.closed
-  hsi := h.hsi
-  wilkie_fails := h.wilkie_fails
-  zhang := zhangPaperConsequences_of_extraConstraints h5 h.closed
-    (extraConstraints_of_normalizedAndWilkieFails
-      h.closed h.hsi h5 h.wilkie_fails h112 h213)
-
-theorem simplifiedCountermodel_is_countermodel
-    {n : Nat} {A : Algebra} (h : SimplifiedCountermodel n A) :
-    Closed n A ∧ HSI n A ∧ WilkieFailsAt A 4 5 4 := by
-  exact ⟨h.closed, h.hsi, h.wilkie_fails⟩
-
-theorem simplifiedCountermodel_to_countermodel
-    {n : Nat} {A : Algebra} (h : SimplifiedCountermodel n A) :
-    Countermodel n A where
-  closed := h.closed
-  hsi := h.hsi
-  wilkie_fails := h.wilkie_fails
-
-theorem simplifiedCountermodel_to_generalCountermodel
-    {n : Nat} {A : Algebra} (h5 : InDomain n 5)
-    (h : SimplifiedCountermodel n A) :
-    GeneralCountermodel n A where
-  closed := h.closed
-  hsi := h.hsi
-  violates_wilkie := by
-    have h4 : InDomain n 4 := InDomain.of_le h5 (by omega) (by omega)
-    exact ⟨4, 5, h4, h5, h.wilkie_fails⟩
-
-theorem simplifiedCountermodel_to_zhangJustifiedCountermodel
-    {n : Nat} {A : Algebra} (h5 : InDomain n 5)
-    (h : SimplifiedCountermodel n A) :
-    ZhangJustifiedCountermodel n A where
-  closed := h.closed
-  hsi := h.hsi
-  wilkie_fails := h.wilkie_fails
-  zhang := zhangPaperConsequences_of_extraConstraints h5 h.closed h.extra
-
-theorem zhangJustifiedCountermodel_to_simplifiedCountermodel
-    {n : Nat} {A : Algebra}
-    (h : ZhangJustifiedCountermodel n A) :
-    SimplifiedCountermodel n A where
-  closed := h.closed
-  hsi := h.hsi
-  wilkie_fails := h.wilkie_fails
-  extra := extraConstraints_of_zhangPaperConsequences h.zhang
-
-theorem encode_satisfying_of_simplifiedCountermodel_data
-    {n : Nat} {A : Algebra}
-    (h5 : InDomain n 5)
-    (S : SimplifiedCountermodel n A) :
-    Satisfiable (legacyEncode n) := by
-  let τ := modelAssignment n A
-  have M : WilkieTermValuesInDomain n A := wilkieTermValuesInDomain_of_closed S.closed h5
-  have Args : WilkieTermSpecArgsInDomain n A :=
-    wilkieTermSpecArgsInDomain_of_terms M h5
-  have Cons : WilkieTermSpecsConsistent A := wilkieTermSpecsConsistent_all A
-  have E : EncodesAlgebra n τ A := modelAssignment_encodesAlgebra S.closed S.hsi
-  have T : EncodesWilkieTerms n τ A := modelAssignment_encodesWilkieTerms
-  have hCoreSem : CoreSemantics n τ :=
-    coreSemantics_of_encoded_countermodel S.closed S.hsi E T M Args Cons S.wilkie_fails
-  have hExtraSem : ExtraClausesSemantics n τ :=
-    extraConstraints_yields_extraSemantics_modelAssignment h5 S.hsi S.extra
-  refine ⟨τ, ?_⟩
-  unfold legacyEncode
-  rw [evalCNF_append]
-  exact ⟨(coreClauses_correct n τ).2 hCoreSem, (extraClauses_correct n τ).2 hExtraSem⟩
-
-theorem encode_satisfiable_of_simplifiedCountermodel
-    {n : Nat} (h5 : InDomain n 5) :
-    (∃ A, SimplifiedCountermodel n A) → Satisfiable (legacyEncode n) := by
-  intro h
-  rcases h with ⟨A, S⟩
-  exact encode_satisfying_of_simplifiedCountermodel_data h5 S
-
-theorem encode_satisfying_yields_simplifiedCountermodel
-    {n : Nat} {τ : Assignment}
-    (h5 : InDomain n 5) (h : evalCNF τ (legacyEncode n)) :
-    ∃ A, SimplifiedCountermodel n A := by
-  unfold legacyEncode at h
-  rw [evalCNF_append] at h
-  have hCore := h.1
-  have hExtra := h.2
-  unfold coreClauses at hCore
-  rw [evalCNF_append] at hCore
-  have HS := (hsiClauses_correct n τ).1 hCore.1
-  rcases HS with ⟨T, U, AS, MS, DS, EAS, EMS, ES⟩
-  have CD := decodedAlgebra_closed_decoded T
-  let A := decodedAlgebra n τ
-  have hHSI : HSI n A := CD.2.hsi CD.1 U AS MS DS EAS EMS ES
-  have W := (wilkieClauses_correct n τ).1 hCore.2
-  have key := wilkieTermClauses_decode_key_terms CD.2 CD.1 W.1 h5
-  have hFail : WilkieFailsAt A 4 5 4 :=
-    wilkieDiseq_yields_failure key.t24 key.t25 key.m24 W.2
-  have hExtraSem : ExtraClausesSemantics n τ :=
-    (extraClauses_correct n τ).1 hExtra
-  have hExtraConstraints : ExtraConstraints n A :=
-    extraSemantics_yields_extraConstraints h5 CD.2 key hExtraSem
-  exact ⟨A, ⟨CD.1, hHSI, hFail, hExtraConstraints⟩⟩
-
-theorem encode_satisfiable_yields_simplifiedCountermodel
-    {n : Nat} (h5 : InDomain n 5) :
-    Satisfiable (legacyEncode n) → ∃ A, SimplifiedCountermodel n A := by
-  intro hSat
-  rcases hSat with ⟨τ, hτ⟩
-  exact encode_satisfying_yields_simplifiedCountermodel h5 hτ
-
-theorem encode_satisfiable_yields_generalCountermodel
-    {n : Nat} (h5 : InDomain n 5) :
-    Satisfiable (legacyEncode n) → ∃ A, GeneralCountermodel n A := by
-  intro hSat
-  rcases encode_satisfiable_yields_simplifiedCountermodel h5 hSat with ⟨A, hA⟩
-  exact ⟨A, simplifiedCountermodel_to_generalCountermodel h5 hA⟩
-
-theorem encode_satisfiable_of_normalizedCountermodel
-    {n : Nat} (h5 : InDomain n 5) :
-    (∃ A, NormalizedCountermodel n A) → Satisfiable (legacyEncode n) := by
-  intro h
-  rcases h with ⟨A, hA⟩
-  exact encode_satisfying_of_simplifiedCountermodel_data h5
-    (normalizedCountermodel_to_simplifiedCountermodel' h5 hA)
-
-/--
-Relabeling/normalization target: any finite HSI algebra violating Wilkie can be
-renamed so that the distinguished unit is `1`, the first two successor
-integers are `2` and `3`, and one failing pair is placed at `4,5`.
-
-This is the remaining bridge from the mathematical, unnormalized theorem to
-the symmetry-broken CNF that the encoder actually emits.
--/
 theorem normalizedCountermodel_of_generalCountermodel
     {n : Nat} (h5 : InDomain n 5) :
     (∃ A, GeneralCountermodel n A) → ∃ A, NormalizedCountermodel n A := by
@@ -11908,24 +11004,6 @@ theorem lex_symmetry_breaking_correct
   · intro h
     rcases h with ⟨A, hA⟩
     exact ⟨A, lexNormalizedCountermodel_to_generalCountermodel h5 hA⟩
-
-theorem generalCountermodel_iff_simpEncLexCountermodel
-    {n aux : Nat} (h5 : InDomain n 5)
-    (haux : primaryCount n < aux) :
-    (∃ A, GeneralCountermodel n A) ↔
-      ∃ A τ,
-        LexNormalizedCountermodel n A ∧
-        (∀ v, v < aux → (τ v ↔ modelAssignment n A v)) ∧
-        evalCNF τ (simpEncLexClauses n aux) := by
-  constructor
-  · intro h
-    rcases (lex_symmetry_breaking_correct h5).1 h with ⟨A, hA⟩
-    rcases simpEncLexClauses_satisfiable_of_lexNormalizedCountermodel
-        hA haux with ⟨τ, hpreserve, hcnf⟩
-    exact ⟨A, τ, hA, hpreserve, hcnf⟩
-  · intro h
-    rcases h with ⟨A, _τ, hA, _hpreserve, _hcnf⟩
-    exact (lex_symmetry_breaking_correct h5).2 ⟨A, hA⟩
 
 theorem hsiClauses_below {n : Nat} :
     CNFBelow (hsiClauses n) (simpEncLexAuxStart n) := by
@@ -12272,8 +11350,8 @@ theorem termSpecArgBelowAux_of_enumerate
 theorem wilkieDiseqClauses_below
     {n : Nat} :
     CNFBelow (wilkieDiseqClauses n) (simpEncLexAuxStart n) := by
-  have h24 : 24 < wilkieTermCount := by native_decide
-  have h25 : 25 < wilkieTermCount := by native_decide
+  have h24 : 24 < wilkieTermCount := by decide
+  have h25 : 25 < wilkieTermCount := by decide
   unfold wilkieDiseqClauses
   apply CNFBelow_map
   intro v hv lit hlit
@@ -12308,13 +11386,13 @@ theorem simpEncExtraClauses_below
   have h2 : InDomain n 2 := InDomain.of_le h5 (by omega) (by omega)
   have h3 : InDomain n 3 := InDomain.of_le h5 (by omega) (by omega)
   have h4 : InDomain n 4 := InDomain.of_le h5 (by omega) (by omega)
-  have ht0 : 0 < wilkieTermCount := by native_decide
-  have ht3 : 3 < wilkieTermCount := by native_decide
-  have ht4 : 4 < wilkieTermCount := by native_decide
-  have ht7 : 7 < wilkieTermCount := by native_decide
-  have ht8 : 8 < wilkieTermCount := by native_decide
-  have ht12 : 12 < wilkieTermCount := by native_decide
-  have ht13 : 13 < wilkieTermCount := by native_decide
+  have ht0 : 0 < wilkieTermCount := by decide
+  have ht3 : 3 < wilkieTermCount := by decide
+  have ht4 : 4 < wilkieTermCount := by decide
+  have ht7 : 7 < wilkieTermCount := by decide
+  have ht8 : 8 < wilkieTermCount := by decide
+  have ht12 : 12 < wilkieTermCount := by decide
+  have ht13 : 13 < wilkieTermCount := by decide
   unfold simpEncExtraClauses
   repeat rw [CNFBelow_append]
   refine ⟨⟨⟨⟨⟨?fixed, ?valueBlock⟩, ?leeDiv⟩, ?jacksonLinear⟩,
@@ -12441,13 +11519,6 @@ theorem simpEncExtraClauses_below
         | exact litVar_neg_lt_of (termVar_lt_simpEncLexAuxStart ht8 hl)
         | exact litVar_neg_lt_of (mulVar_lt_simpEncLexAuxStart hi hv hl)
 
-theorem encode_satisfiable_of_generalCountermodel
-    {n : Nat} (h5 : InDomain n 5) :
-    (∃ A, GeneralCountermodel n A) → Satisfiable (legacyEncode n) := by
-  intro h
-  exact encode_satisfiable_of_normalizedCountermodel h5
-    (normalizedCountermodel_of_generalCountermodel h5 h)
-
 theorem core_correctness_forward
     {n : Nat} (h5 : InDomain n 5) :
     Satisfiable (coreClauses n) → ∃ A, Countermodel n A := by
@@ -12455,62 +11526,6 @@ theorem core_correctness_forward
   rcases core_satisfiable_yields_countermodel h5 h with ⟨A, hClosed, hHSI, hFail⟩
   exact ⟨A, ⟨hClosed, hHSI, hFail⟩⟩
 
-theorem core_correctness_reverse
-    {n : Nat} (h5 : InDomain n 5) :
-    (∃ A, Countermodel n A) → Satisfiable (coreClauses n) := by
-  intro h
-  rcases h with ⟨A, hA⟩
-  exact core_satisfiable_of_countermodel_data h5 hA.closed hA.hsi hA.wilkie_fails
-
-def CoreCorrectnessTarget (n : Nat) : Prop :=
-  Satisfiable (coreClauses n) ↔ ∃ A, Countermodel n A
-
-theorem core_correctness
-    {n : Nat} (h5 : InDomain n 5) :
-    CoreCorrectnessTarget n := by
-  constructor
-  · exact core_correctness_forward h5
-  · exact core_correctness_reverse h5
-
-def EncoderCorrectnessTarget (n : Nat) : Prop :=
-  Satisfiable (legacyEncode n) ↔ ∃ A, SimplifiedCountermodel n A
-
-theorem encoder_correctness
-    {n : Nat} (h5 : InDomain n 5) :
-    EncoderCorrectnessTarget n := by
-  constructor
-  · exact encode_satisfiable_yields_simplifiedCountermodel h5
-  · exact encode_satisfiable_of_simplifiedCountermodel h5
-
-def ZhangEncoderCorrectnessTarget (n : Nat) : Prop :=
-  Satisfiable (legacyEncode n) ↔ ∃ A, ZhangJustifiedCountermodel n A
-
-theorem encoder_correctness_zhang
-    {n : Nat} (h5 : InDomain n 5) :
-    ZhangEncoderCorrectnessTarget n := by
-  constructor
-  · intro hSat
-    rcases encode_satisfiable_yields_simplifiedCountermodel h5 hSat with ⟨A, hA⟩
-    exact ⟨A, simplifiedCountermodel_to_zhangJustifiedCountermodel h5 hA⟩
-  · intro h
-    rcases h with ⟨A, hA⟩
-    exact encode_satisfying_of_simplifiedCountermodel_data h5
-      (zhangJustifiedCountermodel_to_simplifiedCountermodel hA)
-
-def GeneralEncoderCorrectnessTarget (n : Nat) : Prop :=
-  Satisfiable (legacyEncode n) ↔ ∃ A, GeneralCountermodel n A
-
-theorem encoder_correctness_general
-    {n : Nat} (h5 : InDomain n 5) :
-    GeneralEncoderCorrectnessTarget n := by
-  constructor
-  · exact encode_satisfiable_yields_generalCountermodel h5
-  · exact encode_satisfiable_of_generalCountermodel h5
-
-/--
-Full-tail bridge for the current `simp_enc.py` emitter: every
-lex-normalized countermodel satisfies the exact emitted `encode`.
--/
 theorem simpEncEncode_satisfiable_of_lexNormalizedCountermodel
     {n : Nat} (h5 : InDomain n 5) {A : Algebra}
     (hA : LexNormalizedCountermodel n A) :
@@ -12607,36 +11622,5 @@ theorem simpEnc_encoder_correctness_general
   constructor
   · exact simpEncEncode_satisfiable_yields_generalCountermodel h5
   · exact simpEncEncode_satisfiable_of_generalCountermodel h5
-
-/--
-External SAT-solver certificate boundary.
-
-This takes about 10 minutes with Kissat on the DIMACS emitted by
-`.lake/build/bin/wilkies_cnf 11 ...`.
--/
-axiom kissat_unsatisfiable_encode_11 : Unsatisfiable (encode 11)
-
-theorem no_order11_generalCountermodel :
-    ¬ ∃ A, GeneralCountermodel 11 A := by
-  intro h
-  have h5 : InDomain 11 5 := by
-    rw [InDomain_iff]
-    omega
-  exact kissat_unsatisfiable_encode_11
-    ((simpEnc_encoder_correctness_general h5).2 h)
-
-theorem every_order11_hsi_satisfies_wilkie
-    (A : Algebra) (C : Closed 11 A) (H : HSI 11 A) :
-    ∀ x y, InDomain 11 x → InDomain 11 y →
-      wilkieP A x y x = wilkieP A y x x := by
-  intro x y hx hy
-  by_cases hEq : wilkieP A x y x = wilkieP A y x x
-  · exact hEq
-  · exact False.elim (no_order11_generalCountermodel
-      ⟨A, {
-        closed := C
-        hsi := H
-        violates_wilkie := ⟨x, y, hx, hy, hEq⟩
-      }⟩)
 
 end Wilkies
