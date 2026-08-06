@@ -47,77 +47,23 @@ The output should be empty.
 
 ## Reproducing the size-11 formal verification
 
-The formal proof of the main negative result is in `LeanVerification/`.  It
-has two separate parts:
-
-1. generate an LRAT certificate showing that the exact CNF emitted by the
-   Lean encoder for `n = 11` is unsatisfiable; and
-2. import and replay that certificate in Lean with
-   [LRAT-Catcher](https://github.com/leansolving/lrat-catcher).  The replay is
-   connected in Lean to the absence of countermodels of every order at most
-   eleven.
-
-The repository pins both Lean and LRAT-Catcher in
-`LeanVerification/lean-toolchain` and `LeanVerification/lakefile.lean`.
-Besides `elan`/Lake, certificate production needs Python 3, Kissat, and
-`drat-trim`.  Replaying the supplied certificate needs only Lean/Lake (and
-`zsh` for the optional progress wrapper).  The certificate is large (about
-2.2 GB), and the native replay requires substantial free memory and disk
-space.
-
-### Check the supplied certificate in Lean
-
-From a fresh checkout, install the pinned Lean toolchain and dependencies and
-then run the replay:
-
-```sh
-cd LeanVerification
-lake update
-lake build wilkies_cnf
-shasum -a 256 certificates/wilkies_11.lrat # macOS
-# On GNU/Linux: sha256sum certificates/wilkies_11.lrat
-zsh scripts/build_lrat11_with_progress.sh
-lake build Wilkies
-```
-
-The SHA-256 digest must be
-
-```text
-b50556389f68aa0aea82c5e7706f58a066efe3b90cf5f719054ec16f467255c0  certificates/wilkies_11.lrat
-```
-
-The progress wrapper builds `Wilkies.LRAT11`, logs elapsed time and Lean's
-resident memory every 30 seconds, and writes its log path at startup.  It is
-most useful for a cold replay; remove `LeanVerification/.lake/` first to force
-Lake to redo a previously cached check.  On the development machine the LRAT
-replay itself took 757 seconds.  A first build also compiles the ordinary Lean
-sources, so it can take longer.  `lake build Wilkies` then checks the exposed
-theorem
-`Wilkies.no_generalCountermodel_of_order_le_eleven`, which rules out a
-countermodel of every order `n <= 11`.
-
-### Produce a new LRAT certificate
-
-The supplied certificate is a textual, RUP-only LRAT proof over the *full*
-CNF, not merely an UNSAT core. The following proof-production pipeline was
-validated on a smaller instance with LRAT-Catcher and is the procedure used
-for the size-11 artifact. Use a scratch directory: intermediate DRAT/LRAT
-files are large. The first Kissat command reports UNSAT with exit status 20;
-that status is expected and must not be treated as a failure.
-
+First, we create a work directory.
 ```sh
 cd LeanVerification
 work="${TMPDIR:-/tmp}/wilkies-lrat11"
 mkdir -p "$work"
+```
 
-# This is the CNF that Lean itself will check.
+Now generate the CNF:
+```sh
 lake exe wilkies_cnf 11 "$work/w_11.cnf"
+```
 
-# Kissat writes a DRAT proof. Exit status 20 means UNSAT.
-kissat --no-factor --force "$work/w_11.cnf" "$work/w_11.drat" || {
-  kissat_exit=$?
-  test "$kissat_exit" -eq 20
-}
+Kissat writes a DRAT proof. It is important to disable factor, since it introduces auxiliary variables and is thus incompatible with the RUP-only proof we desired.
+```sh
+kissat --no-factor  "$work/w_11.cnf" "$work/w_11.drat" 
+```
+
 
 # Emit a RUP-only LRAT proof against the full input CNF.
 drat-trim "$work/w_11.cnf" "$work/w_11.drat" \
@@ -133,13 +79,15 @@ python3 scripts/rebase_rup_lrat.py \
   "$work/wilkies_11.lrat"
 ```
 
-`drat-trim` validates the DRAT proof while producing the LRAT proof.
-To check a newly produced LRAT artifact with Lean, replace
-`certificates/wilkies_11.lrat` in a disposable working tree with
-`$work/wilkies_11.lrat`, remove `LeanVerification/.lake/`, and rerun the
-progress wrapper above.  An invalid or mismatched certificate fails during
-the Lean build; Kissat and `drat-trim` are certificate producers and are not
-trusted proof steps. Further details about the supplied artifact and its
-trust boundary are in
-[`LeanVerification/certificates/README.md`](LeanVerification/certificates/README.md).
+Finally, run 
+
+```
+lake update
+lake build wilkies_cnf
+zsh scripts/build_lrat11_with_progress.sh
+lake build Wilkies
+```
+
+This assumes you have `zsh`. 
+
 
