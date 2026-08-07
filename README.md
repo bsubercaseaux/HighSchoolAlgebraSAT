@@ -9,7 +9,7 @@ To generate the CNF formula $\Omega_n$ as described in the paper, run:
 ```
 python3 simp_enc.py -n <n> 
 ```
-so for instance, to generate $\Omega_{11}$, oen should run `python3 simp_enc.py -n 11`.
+so for instance, to generate $\Omega_{11}$, one should run `python3 simp_enc.py -n 11`.
 This will output the formula to a file named `w_<n>.cnf` in the same directory.
 
 To obtain the formula corresponding to the Gurevič's identity countermodel, run
@@ -82,7 +82,7 @@ python3 scripts/rebase_rup_lrat.py \
 cp "$work/wilkies_11.lrat" certificates/wilkies_11.lrat
 ```
 
-Finally, run 
+Finally, run (assuming your shell is `zsh`):
 
 ```sh
 lake update
@@ -91,5 +91,4 @@ zsh scripts/build_lrat11_with_progress.sh
 lake build Wilkies
 ```
 
-This assumes you have `zsh`. 
 
