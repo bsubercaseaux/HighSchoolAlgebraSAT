@@ -64,7 +64,7 @@ Kissat writes a DRAT proof. It is important to disable factor, since it introduc
 kissat --no-factor  "$work/w_11.cnf" "$work/w_11.drat" 
 ```
 
-
+```sh
 # Emit a RUP-only LRAT proof against the full input CNF.
 drat-trim "$work/w_11.cnf" "$work/w_11.drat" \
   -L "$work/w_11.raw.lrat" \
@@ -77,11 +77,14 @@ awk -v n="$clauses" 'BEGIN { for (i = 1; i <= n; i++) print i }' \
 python3 scripts/rebase_rup_lrat.py \
   "$work/w_11.raw.lrat" "$work/w_11.full.map" "$clauses" \
   "$work/wilkies_11.lrat"
+
+# Install the certificate where Wilkies/LRAT11.lean imports it.
+cp "$work/wilkies_11.lrat" certificates/wilkies_11.lrat
 ```
 
 Finally, run 
 
-```
+```sh
 lake update
 lake build wilkies_cnf
 zsh scripts/build_lrat11_with_progress.sh
@@ -89,5 +92,4 @@ lake build Wilkies
 ```
 
 This assumes you have `zsh`. 
-
 
