@@ -85,7 +85,6 @@ cp "$work/wilkies_11.lrat" certificates/wilkies_11.lrat
 Finally, run (assuming your shell is `zsh`):
 
 ```sh
-lake update
 lake build wilkies_cnf
 zsh scripts/build_lrat11_with_progress.sh
 lake build Wilkies
